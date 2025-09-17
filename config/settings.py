@@ -51,6 +51,11 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.facebook',
 ]
 
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+)
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
@@ -100,7 +105,10 @@ DATABASES = {
         'PASSWORD': 'mypassword',
         'HOST': 'localhost',
         'PORT': '5432',
-        'OPTIONS': {'sslmode': 'require'}
+        'OPTIONS': {
+            'sslmode': 'prefer',
+            'sslrootcert': r'C:\Program Files\PostgreSQL\17\data\server.crt',
+        }
     }
 }
 
@@ -165,5 +173,5 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config("GOOGLE_CLIENT_SECRET")
 SITE_ID = 1
 
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/accounts/home/'
+LOGIN_REDIRECT_URL = '/home/'
 LOGOUT_REDIRECT_URL = '/login/'
