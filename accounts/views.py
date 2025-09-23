@@ -1,6 +1,7 @@
 import pyotp
 from django.contrib.auth import login, logout, get_user_model
 from django.shortcuts import render, redirect
+from config import settings
 from .forms import LoginForm, CustomUserCreationForm
 from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import api_view, permission_classes
@@ -8,6 +9,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib import messages
 from .models import UserOTP
+from django.http import HttpResponseForbidden, FileResponse
+import os
+from django.core.exceptions import PermissionDenied
 
 User = get_user_model()
 
@@ -76,14 +80,14 @@ def otp_verify(request):
 
     user = User.objects.get(id=user_id)
     otp_obj = UserOTP.objects.get(user=user)
-    totp = pyotp.TOTP(otp_obj.secret, interval=60)
+    totp = pyotp.TOTP(otp_obj.secret, interval=30)
 
     if request.method == 'POST':
         code = request.POST['otp']
 
-        if totp.verify(code):
+        if totp.verify(code, valid_window=1):
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-            del request.session["pre_otp_user_id"]
+            request.session.pop("pre_otp_user_id", None)
             return redirect('home')
         else:
             return render(request, 'accounts/otp_verify.html', {'error': 'کد اشتباه است'})
@@ -92,3 +96,21 @@ def otp_verify(request):
     print(f"🔄 کد جدید OTP برای {user.username}: {otp_code}")
 
     return render(request, "accounts/otp_verify.html")
+
+
+def manager_panel(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    if request.user.groups.filter(name='Managers').exists():
+        return render(request, 'accounts/manager_panel.html')
+
+    raise PermissionDenied
+
+
+@login_required
+def secure_download(request, filename):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden("Access denied")
+    filepath = os.path.join(settings.MEDIA_ROOT, 'sensitive', filename)
+    return FileResponse(open(filepath, 'rb'), as_attachment=True, filename=filename)

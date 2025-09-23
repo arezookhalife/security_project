@@ -25,3 +25,4 @@ class ProductDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView)
     model = Product
     template_name = 'shop/product_detail.html'
     permission_required = 'shop.can_view_product'
+
