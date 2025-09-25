@@ -5,7 +5,10 @@
     <title>پنل مدیر</title>
 </head>
 <body>
+
     <h1>خوش آمدید به پنل مدیر</h1>
+    <p>کاربر: {{ request.user.username|escape }}</p>
     <p>شما عضو گروه Managers هستید ✅</p>
+
 </body>
 </html>

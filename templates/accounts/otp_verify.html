@@ -1,6 +1,18 @@
-{% if error %}<p>{{ error }}</p>{% endif %}
-<form method="post">
-    {% csrf_token %}
-    <input type="text" name="otp" placeholder="کد ۲FA">
-    <button type="submit">تأیید</button>
-</form>
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>OTP Verify</title></head>
+<body>
+    <h2>کد تأیید دو مرحله‌ای</h2>
+
+    {% if error %}
+        <p>{{ error|escape }}</p>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="otp" placeholder="کد ۲FA" required>
+        <button type="submit">تأیید</button>
+    </form>
+
+</body>
+</html>
