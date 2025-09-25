@@ -4,13 +4,15 @@
     <title>Edit Product</title>
 </head>
 <body>
-    <h1>Edit: {{ product.name }}</h1>
+
+    <h1>Edit: {{ product.name|escape }}</h1>
     <p>Price: {{ product.price }}</p>
-    <p>Description: {{ product.description }}</p>
+    <p>Description: {{ product.description|escape|linebreaksbr }}</p>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit">Save</button>
+
     </form>
 </body>
 </html>
