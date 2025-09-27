@@ -12,6 +12,7 @@
         {% csrf_token %}
         <input type="text" name="otp" placeholder="کد ۲FA" required>
         <button type="submit">تأیید</button>
+        <a href="{% url 'login' %}">login</a>
     </form>
 
 </body>

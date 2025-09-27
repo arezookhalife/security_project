@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import login_view, home_view, logout_view, profile_api, otp_verify, register, manager_panel
+from .views import login_view, home_view, logout_view, profile_api, otp_verify, register, manager_panel, crash
 
 urlpatterns = [
     path('login/', login_view, name='login'),
@@ -9,4 +9,5 @@ urlpatterns = [
     path('register/', register, name='register'),
     path('otp-verify/', otp_verify, name='otp_verify'),
     path('manager-panel/', manager_panel, name='manager_panel'),
+    path("crash/", crash, name="crash"),
 ]
