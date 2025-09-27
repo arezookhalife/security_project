@@ -12,7 +12,10 @@ from .models import UserOTP
 from django.http import HttpResponseForbidden, FileResponse
 import os
 from django.core.exceptions import PermissionDenied
+import logging
+from django.http import HttpResponse
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 def login_view(request):
@@ -21,13 +24,7 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             request.session["pre_otp_user_id"] = user.id
-            otp_obj, created = UserOTP.objects.get_or_create(user=user)
-            if created:
-                otp_obj.secret = pyotp.random_base32()
-                otp_obj.save()
-            totp = pyotp.TOTP(otp_obj.secret, interval=60)
-            otp_code = totp.now()
-            print(f"🔑 OTP برای {user.username}: {otp_code}")
+            generate_otp(user)
             return redirect('otp_verify')
         else:
             messages.error(request, "نام کاربری یا رمز عبور اشتباه است.")
@@ -68,35 +65,39 @@ def generate_otp(user):
     if not otp_obj.secret:
         otp_obj.secret = pyotp.random_base32()
         otp_obj.save()
-    totp = pyotp.TOTP(otp_obj.secret)
-    print("کد OTP فعلی:", totp.now())
-    return totp.now()
+    totp = pyotp.TOTP(otp_obj.secret, interval=30)
+    otp_code = totp.now()
+    print(f"🔑 OTP برای {user.username}: {otp_code}")
+    return otp_code
 
 
 def otp_verify(request):
-    user_id = request.session.get("pre_otp_user_id")
-    if not user_id:
-        return redirect("login")
+    try:
+        user_id = request.session.get("pre_otp_user_id")
+        if not user_id:
+            return redirect("login")
 
-    user = User.objects.get(id=user_id)
-    otp_obj = UserOTP.objects.get(user=user)
-    totp = pyotp.TOTP(otp_obj.secret, interval=30)
+        user = User.objects.get(id=user_id)
+        otp_obj = UserOTP.objects.get(user=user)
+        totp = pyotp.TOTP(otp_obj.secret, interval=30)
 
-    if request.method == 'POST':
-        code = request.POST['otp']
+        if request.method == 'POST':
+            code = request.POST['otp']
 
-        if totp.verify(code, valid_window=1):
-            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-            request.session.pop("pre_otp_user_id", None)
-            return redirect('home')
-        else:
-            return render(request, 'accounts/otp_verify.html', {'error': 'کد اشتباه است'})
+            if totp.verify(code, valid_window=1):
+                login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+                request.session.pop("pre_otp_user_id", None)
+                return redirect('home')
+            else:
+                return render(request, 'accounts/otp_verify.html', {'error': 'کد اشتباه یا منقضی شده است'})
 
-    otp_code = totp.now()
-    print(f"🔄 کد جدید OTP برای {user.username}: {otp_code}")
+        return render(request, "accounts/otp_verify.html")
 
-    return render(request, "accounts/otp_verify.html")
-
+    except User.DoesNotExist:
+        return render(request, "error.html", {"error": "کاربر یافت نشد"})
+    except Exception as e:
+        logger.error(f"❌ خطا در OTP Verify: {e}")
+        return render(request, "error.html", {"error": "خطای غیرمنتظره‌ای رخ داد"})
 
 def manager_panel(request):
     if not request.user.is_authenticated:
@@ -110,7 +111,20 @@ def manager_panel(request):
 
 @login_required
 def secure_download(request, filename):
-    if not request.user.is_superuser:
-        return HttpResponseForbidden("Access denied")
-    filepath = os.path.join(settings.MEDIA_ROOT, 'sensitive', filename)
-    return FileResponse(open(filepath, 'rb'), as_attachment=True, filename=filename)
+    try:
+        if not request.user.is_superuser:
+            return HttpResponseForbidden("Access denied")
+
+        filepath = os.path.join(settings.MEDIA_ROOT, 'sensitive', filename)
+        return FileResponse(open(filepath, 'rb'), as_attachment=True, filename=filename)
+
+    except FileNotFoundError:
+        return render(request, "error.html", {"error": "فایل پیدا نشد"})
+    except Exception as e:
+        logger.error(f"❌ خطا در دانلود فایل {filename}: {e}")
+        return render(request, "error.html", {"error": "خطای غیرمنتظره‌ای رخ داد"})
+
+
+def crash(request):
+    1 / 0  # خطای عمدی برای تست
+    return HttpResponse("این خط هرگز اجرا نمی‌شود!")
