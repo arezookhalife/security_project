@@ -171,6 +171,8 @@ SECURE_HSTS_PRELOAD = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -216,3 +218,4 @@ sentry_sdk.init(
     dsn=None,
     integrations=[DjangoIntegration()],
 )
+
