@@ -1,5 +1,5 @@
 import pyotp
-from django.contrib.auth import login, logout, get_user_model
+from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.shortcuts import render, redirect
 from config import settings
 from .forms import LoginForm, CustomUserCreationForm
@@ -9,14 +9,18 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib import messages
 from .models import UserOTP
-from django.http import HttpResponseForbidden, FileResponse
+from django.http import JsonResponse, HttpResponseForbidden, FileResponse
 import os
 from django.core.exceptions import PermissionDenied
 import logging
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
 
 def login_view(request):
     if request.method == "POST":
@@ -77,8 +81,10 @@ def otp_verify(request):
         if not user_id:
             return redirect("login")
 
-        user = User.objects.get(id=user_id)
-        otp_obj = UserOTP.objects.get(user=user)
+        otp_obj = UserOTP.objects.select_related("user").get(user_id=user_id)
+        user = otp_obj.user
+        # user = User.objects.get(id=user_id)
+        # otp_obj = UserOTP.objects.get(user=user)
         totp = pyotp.TOTP(otp_obj.secret, interval=30)
 
         if request.method == 'POST':
@@ -98,6 +104,7 @@ def otp_verify(request):
     except Exception as e:
         logger.error(f"❌ خطا در OTP Verify: {e}")
         return render(request, "error.html", {"error": "خطای غیرمنتظره‌ای رخ داد"})
+
 
 def manager_panel(request):
     if not request.user.is_authenticated:
@@ -126,5 +133,32 @@ def secure_download(request, filename):
 
 
 def crash(request):
-    1 / 0  # خطای عمدی برای تست
+    1 / 0
     return HttpResponse("این خط هرگز اجرا نمی‌شود!")
+
+
+@csrf_exempt
+def test_login_no_otp(request):
+    if not settings.DEBUG:
+        return HttpResponseForbidden("Not allowed")
+
+    token = request.headers.get("X-TEST-TOKEN")
+    if token != getattr(settings, "TEST_SHARED_TOKEN", None):
+        return HttpResponseForbidden("Invalid token")
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=400)
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except:
+        return JsonResponse({"error": "invalid json"}, status=400)
+
+    username = data.get("username")
+    password = data.get("password")
+    user = authenticate(request, username=username, password=password)
+    if user is None:
+        return JsonResponse({"error": "invalid credentials"}, status=403)
+
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return JsonResponse({"status": "ok", "username": user.username})
