@@ -5,6 +5,8 @@ from django.contrib.auth.mixins import PermissionRequiredMixin, LoginRequiredMix
 from django.views.generic import DetailView
 from .forms import ProductForm
 import logging
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ def edit_product(request, product_id):
             return render(request, "error.html", {"error": "خطای غیرمنتظره‌ای رخ داد"})
 
 
+@method_decorator(cache_page(60), name='dispatch')
 class ProductDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     model = Product
     template_name = 'shop/product_detail.html'

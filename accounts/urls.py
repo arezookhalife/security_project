@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import login_view, home_view, logout_view, profile_api, otp_verify, register, manager_panel, crash
+from .views import login_view, home_view, logout_view, profile_api, otp_verify, register, manager_panel, crash, \
+    test_login_no_otp
 
 urlpatterns = [
     path('login/', login_view, name='login'),
@@ -10,4 +11,5 @@ urlpatterns = [
     path('otp-verify/', otp_verify, name='otp_verify'),
     path('manager-panel/', manager_panel, name='manager_panel'),
     path("crash/", crash, name="crash"),
+    path("test-login-no-otp/", test_login_no_otp, name="test_login_no_otp"),
 ]

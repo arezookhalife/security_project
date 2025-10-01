@@ -203,11 +203,15 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': 'error.log',
         },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
-            'level': 'ERROR',
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
             'propagate': True,
         },
     },
@@ -217,5 +221,21 @@ LOGGING = {
 sentry_sdk.init(
     dsn=None,
     integrations=[DjangoIntegration()],
+    traces_sample_rate=1.0,
+    send_default_pii=True
 )
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+TEST_SHARED_TOKEN = os.getenv("TEST_SHARED_TOKEN", "dummy_token_for_local")
+
+
 
